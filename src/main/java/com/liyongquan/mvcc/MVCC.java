@@ -1,21 +1,24 @@
 package com.liyongquan.mvcc;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * 最近在看tidb的时候发现一个MVCC的概念，想通过自己练手实践一下
+ *
+ * https://blog.csdn.net/Waves___/article/details/105295060
+ * 这篇文章也刚好讲到MVCC的细节
  */
 public class MVCC {
-    private List<ExtendData> list=new ArrayList<ExtendData>();
+    private RowDataStorage rowDataStorage=new RowDataStorage();
+    private UndoLogStorage undoLogStorage=new UndoLogStorage();
+    private MvccContext context=new MvccContext();
     private int version=0;
     private int getVersion(){
         return version++;
     }
-    public int insert(Data data){
-        ExtendData extendData=new ExtendData(data,getVersion());
-        list.add(extendData);
-        return 1;
+    public int insert(RowData rowData){
+        ReadView readView = context.createReadView();
+        ExtendRowData extendData=new ExtendRowData(rowData.getId(),rowData.getName(),
+                null,readView.getLowTrixId(),null);
+        return rowDataStorage.append(extendData);
     }
 
     public int update(Data data){
@@ -52,38 +55,6 @@ public class MVCC {
     public void print(){
         for (ExtendData extendData : list) {
             System.out.println(extendData);
-        }
-    }
-
-    private static class Data{
-        long id;
-        String name;
-        public Data(){}
-        public Data(long id,String name){
-            this.id=id;
-            this.name=name;
-        }
-    }
-
-    private static class ExtendData extends Data{
-        //mvcc版本信息
-        int createVersion;
-        int deleteVersion;
-        public ExtendData(Data data,int version){
-            this.id=data.id;
-            this.name=data.name;
-            this.createVersion=version;
-            this.deleteVersion=0;
-        }
-
-        @Override
-        public String toString() {
-            return "ExtendData{" +
-                    "id=" + id +
-                    ", name='" + name + '\'' +
-                    ", createVersion=" + createVersion +
-                    ", deleteVersion=" + deleteVersion +
-                    '}';
         }
     }
 
